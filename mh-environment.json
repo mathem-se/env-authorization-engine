@@ -1,0 +1,9 @@
+{
+  "codePipeline": {
+    "enabled": true
+  },
+  "codeBuild": {
+    "image": "aws/codebuild/standard:5.0",
+    "buildspec": "buildspec.yaml"
+  }
+}
