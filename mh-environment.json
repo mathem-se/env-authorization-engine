@@ -3,7 +3,8 @@
     "enabled": true
   },
   "codeBuild": {
-    "image": "aws/codebuild/standard:5.0",
-    "buildspec": "buildspec.yaml"
+    "image": "aws/codebuild/standard:4.0",
+    "buildspec": "buildspec.yaml",
+    "Privileged": true
   }
 }
