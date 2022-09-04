@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ECSRepositoryName:
+    Type: String
+    Description: The ame of the ECS Docker repository to use for the authorization engine container
+  ECSAuthorizationEngineContainer:
+    Type: String
+    Description: The name of the authorization engine ECS container
+
+Resources:
+  FargateCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      CapacityProviders:
+        - FARGATE
+      ClusterName: env-authorization-engine-cluster
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: 256
+      Memory: 512
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: env-authorization-engine
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECSRepositoryName}:${ECSAuthorizationEngineContainer}
+          Memory: 512
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+            - ContainerPort: 8081
+              Protocol: tcp
+            - ContainerPort: 3000
+              Protocol: tcp
+            - ContainerPort: 3001
+              Protocol: tcp
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref FargateCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      ServiceName: env-authorization-engine-service
+
+  TaskSet:
+    Type: AWS::ECS::TaskSet
+    Properties:
+      LaunchType: FARGATE
+      Cluster: !Ref FargateCluster
+      TaskDefinition: !Ref TaskDefinition
+      Service: !Ref ECSService
+      NetworkConfiguration:
+        AwsVpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !ImportValue env-vpc-PrivateSubnet1
+            - !ImportValue env-vpc-PrivateSubnet2
+            - !ImportValue env-vpc-PrivateSubnet3
+          SecurityGroups:
+            - !ImportValue env-vpc-PrivateSecurityGroup
