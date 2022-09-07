@@ -19,3 +19,9 @@ phases:
       - docker tag ${AUTHORIZATION_ENGINE_CONTAINER}:latest ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${DOCKER_REPOSITORY_NAME}:${AUTHORIZATION_ENGINE_CONTAINER}
       # Push the image to the registry
       - docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${DOCKER_REPOSITORY_NAME}:${AUTHORIZATION_ENGINE_CONTAINER}
+      # Package and upload the Cloudformation template
+      - sam package -t template.yaml --s3-bucket ${BUCKET_NAME} --output-template-file transformed-template.json
+artifacts:
+  files:
+    - transformed-template.json
+  discard-paths: yes

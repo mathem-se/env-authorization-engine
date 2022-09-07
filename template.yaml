@@ -54,8 +54,7 @@ Resources:
         AwsVpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
-            - !ImportValue env-vpc-PrivateSubnet1
-            - !ImportValue env-vpc-PrivateSubnet2
-            - !ImportValue env-vpc-PrivateSubnet3
+            - !ImportValue env-vpc-SubnetAPrivate
+            - !ImportValue env-vpc-SubnetBPrivate
           SecurityGroups:
-            - !ImportValue env-vpc-PrivateSecurityGroup
+            - !ImportValue env-vpc-VPCDefaultSecurityGroup

@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "env-authorization-engine"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1axe215vxmn7x"
+s3_prefix = "env-authorization-engine"
+region = "eu-west-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "ECSRepositoryName=\"env-authorization-repository\" ECSAuthorizationEngineContainer=\"env-authorization-engine\""
+image_repositories = []
