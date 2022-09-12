@@ -11,7 +11,6 @@ env:
   DOMAIN: "env-authorization-engine"
   TEAM: "dev-pricing"
   AWS_DEPLOY_REGION: "eu-west-1"
-  BRANCH: ${GITHUB_REF##*/}
 
 jobs:
   Setup:
@@ -32,7 +31,7 @@ jobs:
     needs: [Setup]
     uses: mathem-se/gh-account-mapping/.github/workflows/workflow.yml@main
     with:
-      branch: $BRANCH
+      branch: ${GITHUB_REF##*/}
       role-session-name: "github-actions-oidc-session"
     secrets:
       AWS_ACCOUNT: ${{ secrets.AWS_CICD_ACCOUNT }}
