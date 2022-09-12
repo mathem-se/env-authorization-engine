@@ -35,30 +35,29 @@ jobs:
       branch: ${{ github.ref_name }}
       role-session-name: "github-actions-oidc-session"
     secrets:
+      AWS_REGION: ${{ secrets.AWS_CICD_API_REGION }}
       AWS_ACCOUNT: ${{ secrets.AWS_CICD_ACCOUNT }}
       AWS_API: ${{ secrets.AWS_CICD_API_URL }}
-      AWS_REGION: ${{ secrets.AWS_CICD_API_REGION }}
 
   Registry:
     needs: [Setup, Account]
     runs-on: ubuntu-latest
     steps:
-      - id: create-docker-repository
-        name: Create Docker repository
+      - name: Create Docker repository
         shell: bash
         run: aws ecr create-repository --repository-name ${{ github.event.repository.name }} || true --image-tag-mutability IMMUTABLE --image-scanning-configuration scanOnPush=true
       - name: Docker login
         shell: bash
-        run: aws ecr get-login-password --region ${{ env.AWS_DEPLOY_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_CICD_ACCOUNT }}.dkr.ecr.${{ env.AWS_DEPLOY_REGION }}.amazonaws.com
+        run: aws ecr get-login-password --region ${{ needs.Setup.outputs.AWS_DEPLOY_REGION }} | docker login --username AWS --password-stdin ${{ needs.Account.outputs.account }}.dkr.ecr.${{ needs.Setup.outputs.AWS_DEPLOY_REGION }}.amazonaws.com
       - name: Docker build
         shell: bash
         run: docker build -t ${{ github.event.repository.name }}-container .
       - name: Tag docker container
         shell: bash
-        run: docker tag ${{ github.event.repository.name }}-container:latest  ${{ needs.Account.outputs.account }}.dkr.ecr.${{ env.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:${{ github.event.repository.name }}-container
+        run: docker tag ${{ github.event.repository.name }}-container:latest  ${{ needs.Account.outputs.account }}.dkr.ecr.${{ needs.Setup.outputs.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:${{ github.event.repository.name }}-container
       - name: Push container to ECR Repository
         shell: bash
-        run: docker push ${{ needs.Account.outputs.account }}.dkr.ecr.${{ env.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:${{ github.event.repository.name }}-container
+        run: docker push ${{ needs.Account.outputs.account }}.dkr.ecr.${{ enneeds.Setup.outputs.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:${{ github.event.repository.name }}-container
 
   Deploy:
     needs: [Setup, Account, Registry]
