@@ -65,7 +65,7 @@ jobs:
       environment: ${{ needs.Account.outputs.environment}}
       domain: ${{ needs.Setup.outputs.DOMAIN }}
       team: ${{ needs.Setup.outputs.TEAM }}
-      AWS_DEPLOY_REGION: ${{ env.AWS_DEPLOY_REGION }}
+      AWS_DEPLOY_REGION: $AWS_DEPLOY_REGION
     secrets:
       AWS_ACCOUNT: ${{ needs.Account.outputs.account }}
       AWS_API_REGION: ${{ secrets.AWS_CICD_API_REGION }}
