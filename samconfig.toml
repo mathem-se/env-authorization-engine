@@ -9,3 +9,7 @@ region = "eu-west-1"
 capabilities = "CAPABILITY_IAM"
 parameter_overrides = "ECSRepositoryName=\"env-authorization-repository\" ECSAuthorizationEngineContainer=\"env-authorization-engine\""
 image_repositories = []
+
+[default.build]
+[default.build.parameters]
+beta_features = true

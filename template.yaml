@@ -22,10 +22,22 @@ Resources:
       Cpu: 256
       Memory: 512
       NetworkMode: awsvpc
+      RuntimePlatform:
+        OperatingSystemFamily: LINUX
+        CpuArchitecture: ARM64
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
       ContainerDefinitions:
         - Name: env-authorization-engine
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECSRepositoryName}:${ECSAuthorizationEngineContainer}
           Memory: 512
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: env-authorization-engine-logs
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: env-authorization-engine
           PortMappings:
             - ContainerPort: 8080
               Protocol: tcp
@@ -35,26 +47,47 @@ Resources:
               Protocol: tcp
             - ContainerPort: 3001
               Protocol: tcp
+
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+      Policies:
+        - PolicyName: ECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
   ECSService:
     Type: AWS::ECS::Service
     Properties:
-      Cluster: !Ref FargateCluster
-      DesiredCount: 1
-      LaunchType: FARGATE
-      ServiceName: env-authorization-engine-service
-
-  TaskSet:
-    Type: AWS::ECS::TaskSet
-    Properties:
-      LaunchType: FARGATE
-      Cluster: !Ref FargateCluster
-      TaskDefinition: !Ref TaskDefinition
-      Service: !Ref ECSService
       NetworkConfiguration:
-        AwsVpcConfiguration:
+        AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
             - !ImportValue env-vpc-SubnetAPrivate
             - !ImportValue env-vpc-SubnetBPrivate
           SecurityGroups:
             - !ImportValue env-vpc-VPCDefaultSecurityGroup
+      Cluster: !Ref FargateCluster
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      LaunchType: FARGATE
+      ServiceName: env-authorization-engine-service
