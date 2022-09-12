@@ -21,7 +21,6 @@ jobs:
       domain: ${{ steps.tags.outputs.domain }}
       owner: ${{ steps.tags.outputs.owner }}
       team: ${{ steps.tags.outputs.team }}
-      branch: ${{ steps.environment-variables.outputs.branch }}
       AWS_DEPLOY_REGION: ${{ steps.environment-variables.outputs.AWS_DEPLOY_REGION }}
       ACCOUNTNAME: ${{ steps.environment-variables.outputs.ACCOUNTNAME }}
     steps:
@@ -37,7 +36,6 @@ jobs:
         name: Build environment variable
         run: |
           echo "::set-output name=AWS_DEPLOY_REGION::${{ env.AWS_DEPLOY_REGION }}"
-          echo "::set-output name=branch::${{ env.BRANCH }}"
           echo "::set-output name=ACCOUNTNAME::${{ env.ACCOUNTNAME }}"
 
   Account:
