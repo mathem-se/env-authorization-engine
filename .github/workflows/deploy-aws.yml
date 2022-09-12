@@ -8,91 +8,68 @@ permissions:
   contents: read
 
 env:
-  DOMAIN: "env-authorization"
-  OWNER: "env-authorization-engine"
+  DOMAIN: "env-authorization-engine"
   TEAM: "dev-pricing"
   AWS_DEPLOY_REGION: "eu-west-1"
-  ACCOUNTNAME:
-  GITHUB_TOKEN: ${{secrets.GH_PACKAGE_READ_ONLY}}
-  NODE_AUTH_TOKEN: ${{secrets.GH_PACKAGE_READ_ONLY}}
-  REGISTRY_URL: "https://npm.pkg.github.com/"
-  BRANCH: ${GITHUB_REF##*/}
 
 jobs:
+  # reusable workflows can't take env.XXX as input
+  # https://github.com/actions/runner/issues/480
+  # https://docs.github.com/en/actions/learn-github-actions/environment-variables#other-types-of-variables
   Setup:
     runs-on: ubuntu-latest
     outputs:
-      domain: ${{ steps.tags.outputs.domain }}
-      owner: ${{ steps.tags.outputs.owner }}
-      team: ${{ steps.tags.outputs.team }}
-      branch: ${{ steps.environment-variables.outputs.branch }}
-      AWS_DEPLOY_REGION: ${{ steps.environment-variables.outputs.AWS_DEPLOY_REGION }}
-      ACCOUNTNAME: ${{ steps.environment-variables.outputs.ACCOUNTNAME }}
+      domain: ${{ steps.env-vars.outputs.DOMAIN }}
+      team: ${{ steps.env-vars.outputs.TEAM }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - id: tags
-        name: Check tags
-        run: |
-          echo "::set-output name=domain::${{ env.DOMAIN }}"
-          echo "::set-output name=owner::${{ env.OWNER }}"
-          echo "::set-output name=team::${{ env.TEAM }}"
-      - id: environment-variables
+      - id: env-vars
         name: Build environment variable
         run: |
-          echo "::set-output name=AWS_DEPLOY_REGION::${{ env.AWS_DEPLOY_REGION }}"
-          echo "::set-output name=branch::${{ env.BRANCH }}"
-          echo "::set-output name=ACCOUNTNAME::${{ env.ACCOUNTNAME }}"
-
+          echo "::set-output name=DOMAIN::${{ env.DOMAIN }}"
+          echo "::set-output name=TEAM::${{ env.TEAM }}"
   Account:
-    needs: [Setup]
     uses: mathem-se/gh-account-mapping/.github/workflows/workflow.yml@main
     with:
-      accountName: ${{ needs.Setup.outputs.ACCOUNTNAME }}
-      branch: ${{ needs.Setup.outputs.branch }}
+      branch: ${{ github.ref_name }}
       role-session-name: "github-actions-oidc-session"
     secrets:
       AWS_ACCOUNT: ${{ secrets.AWS_CICD_ACCOUNT }}
       AWS_API: ${{ secrets.AWS_CICD_API_URL }}
       AWS_REGION: ${{ secrets.AWS_CICD_API_REGION }}
 
-  Test:
+  Build: 
     runs-on: ubuntu-latest
-    needs: [Account]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Run tests
-        uses: ./.github/actions/test
-        with:
-          REGISTRY_URL: ${{ env.REGISTRY_URL }}
+      - name: Create Docker repository
+        shell: bash
+        run: aws ecr create-repository --repository-name ${{ github.event.repository.name }} || true --image-tag-mutability IMMUTABLE --image-scanning-configuration scanOnPush=true
 
+     - name: Docker login
+        shell: bash
+        run: aws ecr get-login-password --region ${{ inputs.AWS_DEPLOY_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_CICD_ACCOUNT }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com
+
+     - name: Docker build
+        shell: bash
+        run: docker build -t ${{ github.event.repository.name }}-container .
+
+     - name: Tag docker container
+        shell: bash
+        run: docker tag ${{ github.event.repository.name }}-container:latest  ${{ needs.Account.outputs.account }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:${{ github.event.repository.name }}-container
+
+     - name: Push container to ECR Repository
+        shell: bash
+        run: docker push ${{ needs.Account.outputs.account }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:${{ github.event.repository.name }}-container
+        
   Deploy:
-    runs-on: ubuntu-latest
-    needs: [Setup, Account, Test]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Echo configuration
-        run: |
-          echo "Config below"
-          echo "-----------------------------------------"
-          echo "Branch:           ${GITHUB_REF##*/}"
-          echo "Domain:           ${{ needs.Setup.outputs.domain }}"
-          echo "Owner:            ${{ needs.Setup.outputs.owner }}"
-          echo "Team:             ${{ needs.Setup.outputs.team }}"
-          echo "-----------------------------------------"
-          echo "AWS account:      ${{ needs.Account.outputs.account }}"
-          echo "AWS region:       ${{ env.AWS_DEPLOY_REGION }}"
-          echo "Environment: ${{ needs.Account.outputs.environment }}"
-      - name: Deploy
-        uses: ./.github/actions/deploy
-        with:
-          DOMAIN: ${{ needs.Setup.outputs.domain }}
-          OWNER: ${{ needs.Setup.outputs.owner }}
-          TEAM: ${{ needs.Setup.outputs.team }}
-          AWS_ACCOUNT: ${{ needs.Account.outputs.account }}
-          AWS_DEPLOY_REGION: ${{ env.AWS_DEPLOY_REGION }}
-          AWS_API_REGION: ${{ secrets.AWS_CICD_API_REGION }}
-          REGISTRY_URL: ${{ env.REGISTRY_URL }}
-          ENVIRONMENT: ${{ needs.Account.outputs.environment }}
+    needs: [Setup, Account, Build]
+    uses: mathem-se/ecom-gh-actions/.github/workflows/deploy.yml@main
+    with:
+      environment: ${{ needs.Account.outputs.environment}}
+      domain: ${{ needs.Setup.outputs.DOMAIN }}
+      team: ${{ needs.Setup.outputs.TEAM }}
+      AWS_DEPLOY_REGION: ${{ env.AWS_DEPLOY_REGION }}
+    secrets:
+      AWS_ACCOUNT: ${{ needs.Account.outputs.account }}
+      AWS_API_REGION: ${{ secrets.AWS_CICD_API_REGION }}
