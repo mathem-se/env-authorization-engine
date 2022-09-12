@@ -14,10 +14,6 @@ inputs:
     required: true
   AWS_API_REGION:
     required: true
-  REGISTRY_URL:
-    required: true
-  ENVIRONMENT:
-    required: true
 
 runs:
   using: "composite"
@@ -37,16 +33,15 @@ runs:
     - name: Push docker image to ECR
       shell: bash
       run: |
-        aws ecr create-repository --repository-name env-authorization-repository || true --image-tag-mutability IMMUTABLE --image-scanning-configuration scanOnPush=true
+        aws ecr create-repository --repository-name ${{ github.event.repository.name }} || true --image-tag-mutability IMMUTABLE --image-scanning-configuration scanOnPush=true
         aws ecr get-login-password --region ${{ inputs.AWS_DEPLOY_REGION }} | docker login --username AWS --password-stdin ${{ inputs.AWS_ACCOUNT }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com
         docker build -t env-authorization-engine-container .
-        docker tag env-authorization-engine-container:latest  ${{ inputs.AWS_ACCOUNT }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com/env-authorization-repository:env-authorization-engine-container
-        docker push  ${{ inputs.AWS_ACCOUNT }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com/env-authorization-repository:env-authorization-engine-container
+        docker tag env-authorization-engine-container:latest  ${{ inputs.AWS_ACCOUNT }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:env-authorization-engine-container
+        docker push  ${{ inputs.AWS_ACCOUNT }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:env-authorization-engine-container
     - name: Deploy
       shell: bash
       run: |
         sam build --beta-features --parallel \
-        --config-env ${{ inputs.ENVIRONMENT }} \
         --config-file ./samconfig.toml
 
         sam deploy \
@@ -57,5 +52,4 @@ runs:
         --region ${{ inputs.AWS_DEPLOY_REGION  }} \
         --s3-prefix ${{ github.event.repository.name }} \
         --resolve-s3 \
-        --config-file ./samconfig.toml \
-        --config-env ${{ inputs.ENVIRONMENT }}
+        --config-file ./samconfig.toml
