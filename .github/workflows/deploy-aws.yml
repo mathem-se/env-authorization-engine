@@ -15,7 +15,7 @@ env:
   AWS_DEPLOY_REGION: "eu-west-1"
 
 jobs:
-   Setup:
+  Setup:
     runs-on: ubuntu-latest
     outputs:
       domain: ${{ steps.tags.outputs.domain }}
