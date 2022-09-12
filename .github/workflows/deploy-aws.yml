@@ -11,26 +11,37 @@ env:
   DOMAIN: "env-authorization-engine"
   OWNER: "env-authorization"
   TEAM: "dev-pricing"
+  ACCOUNTNAME:
   AWS_DEPLOY_REGION: "eu-west-1"
 
 jobs:
-  Setup:
+   Setup:
     runs-on: ubuntu-latest
     outputs:
-      domain: ${{ steps.env-vars.outputs.DOMAIN }}
-      owner: ${{ steps.env-vars.outputs.OWNER }}
-      team: ${{ steps.env-vars.outputs.TEAM }}
+      domain: ${{ steps.tags.outputs.domain }}
+      owner: ${{ steps.tags.outputs.owner }}
+      team: ${{ steps.tags.outputs.team }}
+      branch: ${{ steps.environment-variables.outputs.branch }}
+      AWS_DEPLOY_REGION: ${{ steps.environment-variables.outputs.AWS_DEPLOY_REGION }}
+      ACCOUNTNAME: ${{ steps.environment-variables.outputs.ACCOUNTNAME }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - id: env-vars
+      - id: tags
+        name: Check tags
+        run: |
+          echo "::set-output name=domain::$(cat ./parameters.test.json | jq -r .Tags.domain)"
+          echo "::set-output name=owner::$(cat ./parameters.test.json | jq -r .Tags.owner)"
+          echo "::set-output name=team::$(cat ./parameters.test.json | jq -r .Tags.team)"
+      - id: environment-variables
         name: Build environment variable
         run: |
-          echo "::set-output name=DOMAIN::${{ env.DOMAIN }}"
-          echo "::set-output name=DOMAIN::${{ env.OWNER }}"
-          echo "::set-output name=TEAM::${{ env.TEAM }}"
+          echo "::set-output name=AWS_DEPLOY_REGION::${{ env.AWS_DEPLOY_REGION }}"
+          echo "::set-output name=branch::${{ env.BRANCH }}"
+          echo "::set-output name=ACCOUNTNAME::${{ env.ACCOUNTNAME }}"
 
   Account:
+    needs: [Setup]
     uses: mathem-se/gh-account-mapping/.github/workflows/workflow.yml@main
     with:
       branch: ${{ github.ref_name }}
