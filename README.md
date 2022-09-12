@@ -1,4 +1,5 @@
 # OpenFGA
+
 [![Go Reference](https://pkg.go.dev/badge/github.com/openfga/openfga.svg)](https://pkg.go.dev/github.com/openfga/openfga)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/openfga/openfga?sort=semver&color=green)
 [![Container Image](https://img.shields.io/github/v/release/openfga/openfga?color=blueviolet&label=container&logo=docker "Container Image")](https://hub.docker.com/r/openfga/openfga/tags)
@@ -12,13 +13,17 @@ A high-performance and flexible authorization/permission engine built for develo
 
 OpenFGA is designed to make it easy for developers to model their application permissions and add and integrate fine-grained authorization into their applications.
 
+It allows in-memory data storage for quick development, as well as pluggable database modules - with initial support for PostgreSQL.
+
+It offers an [HTTP API](https://openfga.dev/api/service) and a [gRPC API](https://buf.build/openfga/api/file/main:openfga/v1/openfga_service.proto). It has SDKs for [Node.js/JavaScript](https://www.npmjs.com/package/@openfga/sdk), [GoLang](https://github.com/openfga/go-sdk) and [.NET](https://www.nuget.org/packages/OpenFga.Sdk). Look in our [Community section](https://github.com/openfga/community#community-projects) for third-party SDKs and tools.
+
 ## Getting Started
 
 The following section aims to help you get started quickly. Please look at our official [documentation](https://openfga.dev/) for in-depth information.
 
 ### Setup and Installation
 
-> ℹ️ The following sections setup an OpenFGA server using the default configuration values. These are for rapid development and not for a production environment. Data written to an OpenFGA instance using the default configuration with the memory storage engine will *not* persist after the service is stopped.
+> ℹ️ The following sections setup an OpenFGA server using the default configuration values. These are for rapid development and not for a production environment. Data written to an OpenFGA instance using the default configuration with the memory storage engine will _not_ persist after the service is stopped.
 >
 > For more information on how to configure the OpenFGA server, please take a look at our official documentation on [Configuring OpenFGA](https://openfga.dev/docs/getting-started/setup-openfga#configuring-the-server) or our [Production Checklist](https://openfga.dev/docs/getting-started/setup-openfga#production-checklist).
 
@@ -130,6 +135,7 @@ If everything is running correctly, you should get a response with information a
 ```
 
 ## Playground
+
 The Playground facilitates rapid development by allowing you to visualize and model your application's authorization model(s) and manage relationship tuples with a locally running OpenFGA instance.
 
 To run OpenFGA with the Playground disabled, provide the `--playground-enabled=false` flag.
@@ -137,6 +143,7 @@ To run OpenFGA with the Playground disabled, provide the `--playground-enabled=f
 ```
 ./openfga run --playground-enabled=false
 ```
+
 Once OpenFGA is running, by default, the Playground can be accessed at [http://localhost:3000/playground](http://localhost:3000/playground).
 
 In the event that a port other than the default port is required, the `--playground-port` flag can be set to change it. For example,
@@ -146,6 +153,7 @@ In the event that a port other than the default port is required, the `--playgro
 ```
 
 ## Profiler (pprof)
+
 Profiling through pprof can be enabled on the OpenFGA server by providing the `--profiler-enabled` flag.
 
 ```sh
