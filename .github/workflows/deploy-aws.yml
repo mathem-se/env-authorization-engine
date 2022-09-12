@@ -29,6 +29,7 @@ jobs:
         run: |
           echo "::set-output name=DOMAIN::${{ env.DOMAIN }}"
           echo "::set-output name=TEAM::${{ env.TEAM }}"
+  
   Account:
     uses: mathem-se/gh-account-mapping/.github/workflows/workflow.yml@main
     with:
@@ -38,8 +39,8 @@ jobs:
       AWS_ACCOUNT: ${{ secrets.AWS_CICD_ACCOUNT }}
       AWS_API: ${{ secrets.AWS_CICD_API_URL }}
       AWS_REGION: ${{ secrets.AWS_CICD_API_REGION }}
-
-  Build: 
+  
+  PushContainer: 
     runs-on: ubuntu-latest
     steps:
       - name: Create Docker repository
@@ -61,9 +62,9 @@ jobs:
      - name: Push container to ECR Repository
         shell: bash
         run: docker push ${{ needs.Account.outputs.account }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:${{ github.event.repository.name }}-container
-        
+  
   Deploy:
-    needs: [Setup, Account, Build]
+    needs: [Setup, Account, PushContainer]
     uses: mathem-se/ecom-gh-actions/.github/workflows/deploy.yml@main
     with:
       environment: ${{ needs.Account.outputs.environment}}
