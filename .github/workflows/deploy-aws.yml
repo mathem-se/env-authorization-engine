@@ -40,7 +40,7 @@ jobs:
       AWS_API: ${{ secrets.AWS_CICD_API_URL }}
       AWS_REGION: ${{ secrets.AWS_CICD_API_REGION }}
   
-  PushContainer: 
+  Registry: 
     runs-on: ubuntu-latest
     steps:
       - name: Create Docker repository
@@ -60,7 +60,7 @@ jobs:
         run: docker push ${{ needs.Account.outputs.account }}.dkr.ecr.${{ inputs.AWS_DEPLOY_REGION }}.amazonaws.com/${{ github.event.repository.name }}:${{ github.event.repository.name }}-container
   
   Deploy:
-    needs: [Setup, Account, PushContainer]
+    needs: [Setup, Account, Registry]
     uses: mathem-se/ecom-gh-actions/.github/workflows/deploy.yml@main
     with:
       environment: ${{ needs.Account.outputs.environment}}
