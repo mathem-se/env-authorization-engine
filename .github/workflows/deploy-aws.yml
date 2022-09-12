@@ -8,6 +8,9 @@ permissions:
   contents: read
 
 env:
+  DOMAIN: "env-authorization"
+  OWNER: "env-authorization-engine"
+  TEAM: "dev-pricing"
   AWS_DEPLOY_REGION: "eu-west-1"
   ACCOUNTNAME:
   GITHUB_TOKEN: ${{secrets.GH_PACKAGE_READ_ONLY}}
@@ -31,9 +34,9 @@ jobs:
       - id: tags
         name: Check tags
         run: |
-          echo "::set-output name=domain::$(cat ./parameters.test.json | jq -r .Tags.domain)"
-          echo "::set-output name=owner::$(cat ./parameters.test.json | jq -r .Tags.owner)"
-          echo "::set-output name=team::$(cat ./parameters.test.json | jq -r .Tags.team)"
+          echo "::set-output name=domain::${{ env.DOMAIN }}"
+          echo "::set-output name=owner::${{ env.OWNER }}"
+          echo "::set-output name=team::${{ env.TEAM }}"
       - id: environment-variables
         name: Build environment variable
         run: |
