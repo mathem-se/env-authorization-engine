@@ -8,11 +8,12 @@ permissions:
   contents: read
 
 env:
-  DOMAIN: "env-authorization-engine"
-  OWNER: "env-authorization"
-  TEAM: "dev-pricing"
-  ACCOUNTNAME:
   AWS_DEPLOY_REGION: "eu-west-1"
+  ACCOUNTNAME:
+  GITHUB_TOKEN: ${{secrets.GH_PACKAGE_READ_ONLY}}
+  NODE_AUTH_TOKEN: ${{secrets.GH_PACKAGE_READ_ONLY}}
+  REGISTRY_URL: "https://npm.pkg.github.com/"
+  BRANCH: ${GITHUB_REF##*/}
 
 jobs:
   Setup:
@@ -21,6 +22,7 @@ jobs:
       domain: ${{ steps.tags.outputs.domain }}
       owner: ${{ steps.tags.outputs.owner }}
       team: ${{ steps.tags.outputs.team }}
+      branch: ${{ steps.environment-variables.outputs.branch }}
       AWS_DEPLOY_REGION: ${{ steps.environment-variables.outputs.AWS_DEPLOY_REGION }}
       ACCOUNTNAME: ${{ steps.environment-variables.outputs.ACCOUNTNAME }}
     steps:
@@ -36,22 +38,35 @@ jobs:
         name: Build environment variable
         run: |
           echo "::set-output name=AWS_DEPLOY_REGION::${{ env.AWS_DEPLOY_REGION }}"
+          echo "::set-output name=branch::${{ env.BRANCH }}"
           echo "::set-output name=ACCOUNTNAME::${{ env.ACCOUNTNAME }}"
 
   Account:
     needs: [Setup]
     uses: mathem-se/gh-account-mapping/.github/workflows/workflow.yml@main
     with:
-      branch: ${{ github.ref_name }}
+      accountName: ${{ needs.Setup.outputs.ACCOUNTNAME }}
+      branch: ${{ needs.Setup.outputs.branch }}
       role-session-name: "github-actions-oidc-session"
     secrets:
       AWS_ACCOUNT: ${{ secrets.AWS_CICD_ACCOUNT }}
       AWS_API: ${{ secrets.AWS_CICD_API_URL }}
       AWS_REGION: ${{ secrets.AWS_CICD_API_REGION }}
 
+  Test:
+    runs-on: ubuntu-latest
+    needs: [Account]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run tests
+        uses: ./.github/actions/test
+        with:
+          REGISTRY_URL: ${{ env.REGISTRY_URL }}
+
   Deploy:
     runs-on: ubuntu-latest
-    needs: [Setup, Account]
+    needs: [Setup, Account, Test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -59,14 +74,14 @@ jobs:
         run: |
           echo "Config below"
           echo "-----------------------------------------"
-          echo "Branch:           ${{ github.ref_name }}"
+          echo "Branch:           ${GITHUB_REF##*/}"
           echo "Domain:           ${{ needs.Setup.outputs.domain }}"
           echo "Owner:            ${{ needs.Setup.outputs.owner }}"
           echo "Team:             ${{ needs.Setup.outputs.team }}"
           echo "-----------------------------------------"
-          echo "AWS region:       ${{ env.AWS_DEPLOY_REGION }}"
           echo "AWS account:      ${{ needs.Account.outputs.account }}"
-
+          echo "AWS region:       ${{ env.AWS_DEPLOY_REGION }}"
+          echo "Environment: ${{ needs.Account.outputs.environment }}"
       - name: Deploy
         uses: ./.github/actions/deploy
         with:
@@ -76,3 +91,5 @@ jobs:
           AWS_ACCOUNT: ${{ needs.Account.outputs.account }}
           AWS_DEPLOY_REGION: ${{ env.AWS_DEPLOY_REGION }}
           AWS_API_REGION: ${{ secrets.AWS_CICD_API_REGION }}
+          REGISTRY_URL: ${{ env.REGISTRY_URL }}
+          ENVIRONMENT: ${{ needs.Account.outputs.environment }}
