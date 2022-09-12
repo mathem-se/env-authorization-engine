@@ -18,6 +18,7 @@ jobs:
     outputs:
       domain: ${{ steps.env-vars.outputs.DOMAIN }}
       team: ${{ steps.env-vars.outputs.TEAM }}
+      AWS_DEPLOY_REGION: ${{ steps.env-vars.outputs.AWS_DEPLOY_REGION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -26,12 +27,12 @@ jobs:
         run: |
           echo "::set-output name=DOMAIN::${{ env.DOMAIN }}"
           echo "::set-output name=TEAM::${{ env.TEAM }}"
+          echo "::set-output name=TEAM::${{ env.AWS_DEPLOY_REGION }}"
 
   Account:
-    needs: [Setup]
     uses: mathem-se/gh-account-mapping/.github/workflows/workflow.yml@main
     with:
-      branch: ${GITHUB_REF##*/}
+      branch: ${{ github.ref_name }}
       role-session-name: "github-actions-oidc-session"
     secrets:
       AWS_ACCOUNT: ${{ secrets.AWS_CICD_ACCOUNT }}
@@ -66,7 +67,7 @@ jobs:
       environment: ${{ needs.Account.outputs.environment}}
       domain: ${{ needs.Setup.outputs.DOMAIN }}
       team: ${{ needs.Setup.outputs.TEAM }}
-      AWS_DEPLOY_REGION: $AWS_DEPLOY_REGION
+      AWS_DEPLOY_REGION: ${{ needs.Setup.outputs.AWS_DEPLOY_REGION }}
     secrets:
       AWS_ACCOUNT: ${{ needs.Account.outputs.account }}
       AWS_API_REGION: ${{ secrets.AWS_CICD_API_REGION }}
